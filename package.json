@@ -10,5 +10,6 @@
     "axios": "^1.4.0",
     "@discordjs/voice": "^0.15.0",
     "ytdl-core": "^4.11.0"
+    "node-schedule": "^2.1.1"
   }
 }
