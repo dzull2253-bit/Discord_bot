@@ -13,6 +13,17 @@ module.exports = {
     if(!queues[guildId]) queues[guildId] = { songs: [], player: null, connection: null };
     const queue = queues[guildId];
 
+    function playSong() {
+      if(queue.songs.length === 0){
+        queue.connection.destroy();
+        queue.player = null;
+        return;
+      }
+      const resource = createAudioResource(ytdl(queue.songs[0], { filter:"audioonly", highWaterMark: 1<<25 }));
+      queue.player.play(resource);
+      queue.connection.subscribe(queue.player);
+    }
+
     if(cmd === "!play"){
       if(!args[1]) return message.reply("Masukkan URL!");
       const channel = message.member.voice.channel;
@@ -31,17 +42,13 @@ module.exports = {
 
         queue.player.on(AudioPlayerStatus.Idle, ()=>{
           queue.songs.shift();
-          if(queue.songs.length>0){
-            queue.player.play(createAudioResource(ytdl(queue.songs[0], { filter:"audioonly" })));
-          } else {
-            queue.connection.destroy();
-            queue.player = null;
-          }
+          playSong();
         });
 
-        const resource = createAudioResource(ytdl(queue.songs[0], { filter:"audioonly" }));
-        queue.player.play(resource);
-        queue.connection.subscribe(queue.player);
+        queue.player.on('error', error => console.error('Audio Player Error:', error));
+        queue.connection.on('error', error => console.error('Voice Connection Error:', error));
+
+        playSong();
       }
 
       message.reply(`🎵 Lagu ditambahkan ke queue.`);
@@ -66,7 +73,8 @@ module.exports = {
         queue.player.stop();
         queue.connection.destroy();
         queue.songs = [];
-        message.reply("⏹ semua lagu stop");
+        queue.player = null;
+        message.reply("⏹ Semua lagu stop");
       }
     }
   }
