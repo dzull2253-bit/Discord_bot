@@ -4,7 +4,7 @@ const music = require("./modules/music");
 const schedule = require("node-schedule");
 
 const client = new Client({
-  intents: [
+  intents:[
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
@@ -12,26 +12,24 @@ const client = new Client({
   ]
 });
 
-// ganti dengan ID channel Discord tempat auto meme
-const AUTO_MEME_CHANNEL_ID = "1432040919682519264";
+const autoMemeChannelId = "1432040919682519264"; // ganti dengan channel auto meme
 
-client.once("ready", () => {
+client.once("ready", ()=>{
   console.log(`Bot online sebagai ${client.user.tag}`);
 
-  const channel = client.channels.cache.get(AUTO_MEME_CHANNEL_ID);
-  if (channel) {
-    // auto meme setiap 10 menit
-    setInterval(() => meme.sendAutoMeme(channel), 10 * 60 * 1000);
+  // Auto meme setiap pagi jam 08:00 & sore jam 18:00
+  schedule.scheduleJob('0 8 * * *', async ()=>{
+    const channel = client.channels.cache.get(autoMemeChannelId);
+    if(channel) meme.sendAutoMeme(channel);
+  });
 
-    // contoh jadwal pagi & sore
-    schedule.scheduleJob("0 8 * * *", () => meme.sendAutoMeme(channel, true));
-    schedule.scheduleJob("0 18 * * *", () => meme.sendAutoMeme(channel, true));
-  } else {
-    console.log("⚠️ Channel auto meme tidak ditemukan (cek ID channel)");
-  }
+  schedule.scheduleJob('0 18 * * *', async ()=>{
+    const channel = client.channels.cache.get(autoMemeChannelId);
+    if(channel) meme.sendAutoMeme(channel);
+  });
 });
 
-client.on("messageCreate", async (message) => {
+client.on("messageCreate", async message=>{
   meme.handleMessage(message);
   music.handleMessage(message);
 });
