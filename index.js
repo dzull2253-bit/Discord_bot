@@ -11,7 +11,7 @@ const client = new Client({
   ]
 });
 
-const channelId = "ID_CHANNEL_DISCORD"; // ganti dengan ID channel auto meme
+const channelId = "1432040919682519264"; // ganti dengan ID channel auto meme
 
 client.once("ready", ()=>{
   console.log(`Bot online sebagai ${client.user.tag}`);
