@@ -1,7 +1,10 @@
 const { EmbedBuilder } = require("discord.js");
 const axios = require("axios");
 
-const subredditList = ["memes","dankmemes","funny","wholesomememes","ProgrammerHumor","gaming","anime","prequelmemes","HistoryMemes","me_irl"];
+const subredditList = [
+  "memes","dankmemes","funny","wholesomememes","ProgrammerHumor",
+  "gaming","anime","prequelmemes","HistoryMemes","me_irl"
+];
 const giphyTags = ["funny","dance","hug","cry","meme","cat","dog","reaction"];
 
 const jokes = [
@@ -32,27 +35,36 @@ const keywordsResponse = {
 async function getRedditMeme(subreddit){
   try{
     const res = await axios.get(`https://meme-api.com/gimme/${subreddit}`);
-    return res.data.url;
+    return res.data;
   }catch(e){ console.error(e); return null; }
 }
 
 async function getGiphyRandom(tag){
   try{
     const res = await axios.get(`https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=${tag}&rating=pg-13`);
-    return res.data.data.images.original.url;
+    return res.data.data;
   }catch(e){ console.error(e); return null; }
 }
 
 async function sendAutoMeme(channel){
-  const isMeme = Math.random()<0.5;
-  if(isMeme){
-    const randomSub = subredditList[Math.floor(Math.random()*subredditList.length)];
-    const memeUrl = await getRedditMeme(randomSub);
-    if(memeUrl) channel.send(memeUrl);
+  const isMeme = Math.random() < 0.5;
+
+  const embed = new EmbedBuilder().setColor("Random").setTimestamp();
+
+  if (isMeme) {
+    const random = subredditList[Math.floor(Math.random() * subredditList.length)];
+    const meme = await getRedditMeme(random);
+    if (!meme) return;
+    embed.setTitle(meme.title || `Meme dari r/${random}`);
+    embed.setImage(meme.url);
+    channel.send({ embeds: [embed] });
   } else {
-    const randomTag = giphyTags[Math.floor(Math.random()*giphyTags.length)];
-    const gifUrl = await getGiphyRandom(randomTag);
-    if(gifUrl) channel.send(gifUrl);
+    const tag = giphyTags[Math.floor(Math.random() * giphyTags.length)];
+    const gif = await getGiphyRandom(tag);
+    if(!gif) return;
+    embed.setTitle(`GIF: ${tag}`);
+    embed.setImage(gif.images.original.url);
+    channel.send({ embeds: [embed] });
   }
 }
 
@@ -64,17 +76,17 @@ function updateLeaderboard(userId, stat){
 function createLeaderboardEmbed(){
   const embed = new EmbedBuilder()
     .setTitle("🏆 Leaderboard Lucu Server")
-    .setColor("#FF69B4")
+    .setColor("Blue")
     .setTimestamp();
 
   const topNoob = Object.entries(leaderboard).sort((a,b)=>b[1].noob - a[1].noob).slice(0,5);
-  embed.addFields({name:"Top 5 Noob", value:topNoob.map(([id,stats])=>`<@${id}> → ${stats.noob}`).join("\n") || "Belum ada data"});
+  embed.addFields({name:"Top Noob", value: topNoob.map(([id,s])=>`<@${id}> → ${s.noob}`).join("\n") || "Belum ada data"});
 
   const topSimp = Object.entries(leaderboard).sort((a,b)=>b[1].simp - a[1].simp).slice(0,5);
-  embed.addFields({name:"Top 5 Simp", value:topSimp.map(([id,stats])=>`<@${id}> → ${stats.simp}`).join("\n") || "Belum ada data"});
+  embed.addFields({name:"Top Simp", value: topSimp.map(([id,s])=>`<@${id}> → ${s.simp}`).join("\n") || "Belum ada data"});
 
   const topPro = Object.entries(leaderboard).sort((a,b)=>b[1].pro - a[1].pro).slice(0,5);
-  embed.addFields({name:"Top 5 Pro", value:topPro.map(([id,stats])=>`<@${id}> → ${stats.pro}`).join("\n") || "Belum ada data"});
+  embed.addFields({name:"Top Pro", value: topPro.map(([id,s])=>`<@${id}> → ${s.pro}`).join("\n") || "Belum ada data"});
 
   return embed;
 }
@@ -83,50 +95,54 @@ module.exports = {
   handleMessage: async function(message){
     if(message.author.bot) return;
     const cmd = message.content.toLowerCase();
-    const memberId = message.author.id;
+    const id = message.author.id;
 
     if(cmd === "!help"){
-      message.channel.send({embeds:[new EmbedBuilder()
+      const helpEmbed = new EmbedBuilder()
         .setTitle("📜 Command List")
-        .setColor("#00FFFF")
+        .setColor("Aqua")
         .setDescription(`
-!meme, !joke, !roast
-!slap, !cry, !sus, !simp, !noob, !pro, !bonk
-!gaymeter, !simpmeter, !coolrate, !luck, !iq
-!who_noob, !who_pro, !who_sus
+**Meme Commands**
+!meme !joke !roast  
+**Troll**
+!slap !cry !sus !simp !noob !pro !bonk  
+**Fun Stats**
+!gaymeter !simpmeter !coolrate !luck !iq  
+**Random People**
+!who_noob !who_pro !who_sus  
+**Leaderboard**
 !leaderboard
-!dance, !hug, !cry
-!8ball
-!play, !skip, !stop (music)
-`)]});
+        `);
+      message.channel.send({ embeds: [helpEmbed] });
     }
 
     if(cmd === "!meme") await sendAutoMeme(message.channel);
     if(cmd === "!joke") message.reply(jokes[Math.floor(Math.random()*jokes.length)]);
     if(cmd === "!roast") message.reply(roasts[Math.floor(Math.random()*roasts.length)]);
 
-    // troll commands
-    if(cmd === "!slap"){ updateLeaderboard(memberId,"noob"); message.reply(`${message.author} menampar seseorang 👋`); }
-    if(cmd === "!cry"){ message.reply(`${message.author} menangis di pojok 😭`); }
-    if(cmd === "!sus"){ updateLeaderboard(memberId,"noob"); message.reply(`${message.author} terlihat sangat SUS 🤨`); }
-    if(cmd === "!simp"){ updateLeaderboard(memberId,"simp"); message.reply(`${message.author} adalah SIMP tingkat dewa 🫡`); }
-    if(cmd === "!noob"){ updateLeaderboard(memberId,"noob"); message.reply(`${message.author} certified NOOB 🎮`); }
-    if(cmd === "!pro"){ updateLeaderboard(memberId,"pro"); message.reply(`${message.author} pemain PRO 😎`); }
-    if(cmd === "!bonk"){ message.reply(`${message.author} kena bonk horny jail 🔨`); }
+    // troll
+    if(cmd === "!slap"){ updateLeaderboard(id,"noob"); message.reply(`${message.author} menampar seseorang 👋`); }
+    if(cmd === "!cry"){ message.reply(`${message.author} menangis 😭`); }
+    if(cmd === "!sus"){ updateLeaderboard(id,"noob"); message.reply(`${message.author} SUS 🤨`); }
+    if(cmd === "!simp"){ updateLeaderboard(id,"simp"); message.reply(`${message.author} SIMP 🫡`); }
+    if(cmd === "!noob"){ updateLeaderboard(id,"noob"); message.reply("Certified NOOB 🎮"); }
+    if(cmd === "!pro"){ updateLeaderboard(id,"pro"); message.reply("Player PRO 😎"); }
+    if(cmd === "!bonk"){ message.reply("Bonk horny jail 🔨"); }
 
-    // fun stats
-    if(cmd === "!gaymeter") message.reply(`🌈 Gay meter: ${Math.floor(Math.random()*100)}%`);
-    if(cmd === "!simpmeter") message.reply(`❤️ Simp meter: ${Math.floor(Math.random()*100)}%`);
-    if(cmd === "!coolrate") message.reply(`😎 Coolness kamu: ${Math.floor(Math.random()*100)}%`);
-    if(cmd === "!luck") message.reply(`🍀 Luck hari ini: ${Math.floor(Math.random()*100)}%`);
-    if(cmd === "!iq") message.reply(`🧠 IQ kamu: ${Math.floor(Math.random()*200)}`);
+    // stats
+    if(cmd === "!gaymeter") message.reply(`🌈 Gay: ${Math.floor(Math.random()*100)}%`);
+    if(cmd === "!simpmeter") message.reply(`❤️ Simp: ${Math.floor(Math.random()*100)}%`);
+    if(cmd === "!coolrate") message.reply(`😎 Coolness: ${Math.floor(Math.random()*100)}%`);
+    if(cmd === "!luck") message.reply(`🍀 Luck: ${Math.floor(Math.random()*100)}%`);
+    if(cmd === "!iq") message.reply(`🧠 IQ: ${Math.floor(Math.random()*200)}`);
 
     // leaderboard
-    if(cmd === "!leaderboard") message.channel.send({embeds:[createLeaderboardEmbed()]});
+    if(cmd === "!leaderboard") message.channel.send({ embeds: [createLeaderboardEmbed()] });
 
-    // keywords
-    for(const [key,res] of Object.entries(keywordsResponse)){
-      if(message.content.toLowerCase().includes(key)) message.reply(res);
+    // auto keywords
+    for(const key in keywordsResponse){
+      if(message.content.toLowerCase().includes(key))
+        message.reply(keywordsResponse[key]);
     }
   },
   sendAutoMeme
