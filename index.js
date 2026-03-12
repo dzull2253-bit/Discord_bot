@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const axios = require("axios");
 
 const client = new Client({
@@ -10,15 +10,19 @@ const client = new Client({
 });
 
 // ================= CONFIG =================
-const channelId = "ID_CHANNEL_DISCORD"; // ganti dengan channel ID untuk auto meme
+const channelId = "1432040919682519264"; // Ganti dengan ID channel auto meme
 const subredditList = ["memes","dankmemes","funny","wholesomememes","ProgrammerHumor","gaming","anime","prequelmemes","HistoryMemes","me_irl"];
-const gifList = {
-  dance:["https://media.giphy.com/media/3o7aD6p0ZnW45g5tNa/giphy.gif","https://media.giphy.com/media/l2SqfBRNw7q3r6m1S/giphy.gif"],
-  hug:["https://media.giphy.com/media/l2QDM9Jnim1YVILXa/giphy.gif","https://media.giphy.com/media/od5H3PmEG5EVq/giphy.gif"],
-  cry:["https://media.giphy.com/media/ROF8OQvDmxytW/giphy.gif","https://media.giphy.com/media/9Y5BbDSkSTiY8/giphy.gif"]
+const giphyTags = ["funny","dance","hug","cry","meme","cat","dog","reaction"];
+
+const keywordsResponse = {
+  "hello":"Hello there! 👋",
+  "hi":"Hi! 😄",
+  "lag":"Server lagi lag ya? 🐌",
+  "noob":"Hati-hati, noob detected! 🎮",
+  "sus":"Hmm... suspicious 🤨"
 };
 
-// Lists
+// Joke & Roast lists
 const jokes = [
   "Kenapa server selalu crash? Karena lelah menahan admin 😂",
   "Player bilang lag sedikit... server langsung mati",
@@ -48,10 +52,28 @@ async function getRedditMeme(subreddit){
   }
 }
 
-async function sendMeme(channel){
-  const randomSub = subredditList[Math.floor(Math.random()*subredditList.length)];
-  const memeUrl = await getRedditMeme(randomSub);
-  if(memeUrl) channel.send(memeUrl);
+async function getGiphyRandom(tag){
+  try{
+    const res = await axios.get(`https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=${tag}&rating=pg-13`);
+    return res.data.data.images.original.url;
+  }catch(e){
+    console.error("Gagal ambil GIF:", e.message);
+    return null;
+  }
+}
+
+async function sendAutoMeme(channel){
+  // 50% chance meme Reddit, 50% GIF Giphy
+  const isMeme = Math.random()<0.5;
+  if(isMeme){
+    const randomSub = subredditList[Math.floor(Math.random()*subredditList.length)];
+    const memeUrl = await getRedditMeme(randomSub);
+    if(memeUrl) channel.send(memeUrl);
+  } else {
+    const randomTag = giphyTags[Math.floor(Math.random()*giphyTags.length)];
+    const gifUrl = await getGiphyRandom(randomTag);
+    if(gifUrl) channel.send(gifUrl);
+  }
 }
 
 function updateLeaderboard(userId, stat){
@@ -59,16 +81,34 @@ function updateLeaderboard(userId, stat){
   leaderboard[userId][stat]++;
 }
 
-function randomPercent(){ return Math.floor(Math.random()*100); }
-function randomIQ(){ return Math.floor(Math.random()*200); }
+function createLeaderboardEmbed(){
+  const embed = new EmbedBuilder()
+    .setTitle("🏆 Leaderboard Lucu Server")
+    .setColor("#FF69B4")
+    .setTimestamp();
+
+  // Top 5 Noob
+  const topNoob = Object.entries(leaderboard).sort((a,b)=>b[1].noob - a[1].noob).slice(0,5);
+  embed.addFields({name:"Top 5 Noob", value:topNoob.map(([id,stats])=>`<@${id}> → ${stats.noob}`).join("\n") || "Belum ada data"});
+
+  // Top 5 Simp
+  const topSimp = Object.entries(leaderboard).sort((a,b)=>b[1].simp - a[1].simp).slice(0,5);
+  embed.addFields({name:"Top 5 Simp", value:topSimp.map(([id,stats])=>`<@${id}> → ${stats.simp}`).join("\n") || "Belum ada data"});
+
+  // Top 5 Pro
+  const topPro = Object.entries(leaderboard).sort((a,b)=>b[1].pro - a[1].pro).slice(0,5);
+  embed.addFields({name:"Top 5 Pro", value:topPro.map(([id,stats])=>`<@${id}> → ${stats.pro}`).join("\n") || "Belum ada data"});
+
+  return embed;
+}
 
 // ==================== READY ====================
 client.once("ready", ()=>{
-  console.log(`Bot super meme online sebagai ${client.user.tag}`);
+  console.log(`Bot pro meme online sebagai ${client.user.tag}`);
 
   const channel = client.channels.cache.get(channelId);
   if(channel){
-    setInterval(()=>sendMeme(channel), 10*60*1000); // 10 menit
+    setInterval(()=>sendAutoMeme(channel), 10*60*1000); // 10 menit
   }else{
     console.log("Channel ID salah atau belum tersedia");
   }
@@ -78,27 +118,35 @@ client.once("ready", ()=>{
 client.on("messageCreate", async message=>{
   if(message.author.bot) return;
   const cmd = message.content.toLowerCase();
-
   const memberId = message.author.id;
 
-  // ---------- MEME ----------
-  if(cmd === "!meme"){
-    const randomSub = subredditList[Math.floor(Math.random()*subredditList.length)];
-    const memeUrl = await getRedditMeme(randomSub);
-    if(memeUrl) message.reply(memeUrl);
+  // ---------- HELP ----------
+  if(cmd === "!help"){
+    const helpEmbed = new EmbedBuilder()
+      .setTitle("📜 Command List")
+      .setColor("#00FFFF")
+      .setDescription(`
+!meme - Meme random dari Reddit/Giphy
+!joke - Random joke
+!roast - Roast lucu
+!slap, !cry, !sus, !simp, !noob, !pro, !bonk - Command troll
+!gaymeter, !simpmeter, !coolrate, !luck, !iq - Random fun stats
+!who_noob, !who_pro, !who_sus - Random member lucu
+!leaderboard - Lihat leaderboard embed
+!dance, !hug, !cry - GIF lucu
+!8ball - 8ball fortune
+`)
+    message.channel.send({embeds:[helpEmbed]});
   }
+
+  // ---------- MEME ----------
+  if(cmd === "!meme") await sendAutoMeme(message.channel);
 
   // ---------- JOKE ----------
-  if(cmd === "!joke"){
-    const random = jokes[Math.floor(Math.random()*jokes.length)];
-    message.reply(random);
-  }
+  if(cmd === "!joke") message.reply(jokes[Math.floor(Math.random()*jokes.length)]);
 
   // ---------- ROAST ----------
-  if(cmd === "!roast"){
-    const random = roasts[Math.floor(Math.random()*roasts.length)];
-    message.reply(random);
-  }
+  if(cmd === "!roast") message.reply(roasts[Math.floor(Math.random()*roasts.length)]);
 
   // ---------- TROLL ----------
   if(cmd === "!slap"){ updateLeaderboard(memberId,"noob"); message.reply(`${message.author} menampar seseorang 👋`); }
@@ -111,20 +159,14 @@ client.on("messageCreate", async message=>{
   if(cmd === "!bonk"){ message.reply(`${message.author} kena bonk horny jail 🔨`); }
 
   // ---------- RANDOM FUN ----------
-  if(cmd === "!gaymeter") message.reply(`🌈 Gay meter: ${randomPercent()}%`);
-  if(cmd === "!simpmeter") message.reply(`❤️ Simp meter: ${randomPercent()}%`);
-  if(cmd === "!coolrate") message.reply(`😎 Coolness kamu: ${randomPercent()}%`);
-  if(cmd === "!luck") message.reply(`🍀 Luck hari ini: ${randomPercent()}%`);
-  if(cmd === "!iq") message.reply(`🧠 IQ kamu: ${randomIQ()}`);
+  if(cmd === "!gaymeter") message.reply(`🌈 Gay meter: ${Math.floor(Math.random()*100)}%`);
+  if(cmd === "!simpmeter") message.reply(`❤️ Simp meter: ${Math.floor(Math.random()*100)}%`);
+  if(cmd === "!coolrate") message.reply(`😎 Coolness kamu: ${Math.floor(Math.random()*100)}%`);
+  if(cmd === "!luck") message.reply(`🍀 Luck hari ini: ${Math.floor(Math.random()*100)}%`);
+  if(cmd === "!iq") message.reply(`🧠 IQ kamu: ${Math.floor(Math.random()*200)}`);
 
   // ---------- LEADERBOARD ----------
-  if(cmd === "!leaderboard"){
-    let lb = "🏆 Leaderboard lucu:\n";
-    for(const [id, stats] of Object.entries(leaderboard)){
-      lb += `<@${id}> → Noob:${stats.noob} | Simp:${stats.simp} | Pro:${stats.pro}\n`;
-    }
-    message.channel.send(lb || "Belum ada data leaderboard.");
-  }
+  if(cmd === "!leaderboard") message.channel.send({embeds:[createLeaderboardEmbed()]});
 
   // ---------- WHO RANDOM ----------
   if(cmd === "!who_noob"){ 
@@ -146,11 +188,16 @@ client.on("messageCreate", async message=>{
     message.reply(answers[Math.floor(Math.random()*answers.length)]);
   }
 
-  // ---------- GIF LUCUL ----------
+  // ---------- GIF ----------
   if(cmd === "!dance" || cmd === "!hug" || cmd === "!cry"){
     const gifs = gifList[cmd.substring(1)];
     const gifUrl = gifs[Math.floor(Math.random()*gifs.length)];
     message.reply(gifUrl);
+  }
+
+  // ---------- KEYWORDS RESPONSE ----------
+  for(const [key,res] of Object.entries(keywordsResponse)){
+    if(message.content.toLowerCase().includes(key)) message.reply(res);
   }
 
   // ---------- FAKE TROLL ----------
@@ -167,6 +214,7 @@ client.on("messageCreate", async message=>{
     setTimeout(()=>message.channel.send("1..."),2000);
     setTimeout(()=>message.channel.send("💥 BOOM (server aman kok)"),3000);
   }
+
 });
 
 client.login(process.env.TOKEN);
