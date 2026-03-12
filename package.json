@@ -1,6 +1,7 @@
 {
   "name": "discord-bot-template",
   "version": "1.0.0",
+  "description": "Bot Discord Meme + Music siap deploy Railway",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -11,5 +12,8 @@
     "ytdl-core": "^4.11.2",
     "axios": "^1.4.0",
     "node-schedule": "^2.1.1"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
