@@ -12,7 +12,8 @@ const jokes = [
   "Player bilang lag sedikit... server langsung mati",
   "Aku bukan AFK... aku sedang meditasi gaming",
   "Admin: server stabil. 2 menit kemudian restart server",
-  "Creeper tidak sedih... dia hanya eksplosif 💥"
+  "Creeper tidak sedih... dia hanya eksplosif 💥",
+  "We wok de tok... Kena ketok"
 ];
 
 const roasts = [
@@ -130,11 +131,11 @@ module.exports = {
     if(cmd === "!bonk"){ message.reply("Bonk horny jail 🔨"); }
 
     // stats
-    if(cmd === "!gaymeter") message.reply(`🌈 Gay: ${Math.floor(Math.random()*100)}%`);
+    if(cmd === "!gaymeter") message.reply(`🌈 Gay: ${Math.floor(Math.random()*1000)}%`);
     if(cmd === "!simpmeter") message.reply(`❤️ Simp: ${Math.floor(Math.random()*100)}%`);
     if(cmd === "!coolrate") message.reply(`😎 Coolness: ${Math.floor(Math.random()*100)}%`);
     if(cmd === "!luck") message.reply(`🍀 Luck: ${Math.floor(Math.random()*100)}%`);
-    if(cmd === "!iq") message.reply(`🧠 IQ: ${Math.floor(Math.random()*200)}`);
+    if(cmd === "!iq") message.reply(`🧠 IQ: ${Math.floor(Math.random()*500)}`);
 
     // leaderboard
     if(cmd === "!leaderboard") message.channel.send({ embeds: [createLeaderboardEmbed()] });
